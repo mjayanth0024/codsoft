@@ -1,0 +1,203 @@
+activity_main.xml
+"<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
+    tools:context=".MainActivity"
+    android:orientation="vertical"
+    android:background="@drawable/img_1">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:orientation="horizontal"
+        android:layout_marginTop="1dp"
+        android:layout_height="wrap_content">
+        <EditText
+            android:id="@+id/edit_Text"
+            android:layout_width="0dp"
+            android:hint="enter item"
+            android:layout_height="wrap_content"
+            android:layout_weight="4"/>
+        <Button
+            android:id="@+id/button"
+            android:layout_width="0dp"
+            android:text="add"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"/>
+    </LinearLayout>
+
+    <ListView
+        android:id="@+id/list"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:divider="@android:color/transparent"
+        android:dividerHeight="8dp" />
+</LinearLayout>"
+
+List_item.xml
+"<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal">
+
+    <CheckBox
+        android:id="@+id/checkbox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <TextView
+        android:id="@+id/item_text"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:padding="8dp" />
+
+    <Button
+        android:id="@+id/edit_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Edit" />
+
+    <Button
+        android:id="@+id/delete_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Delete" />
+
+</LinearLayout>"
+
+mainactivity.java
+"package com.example.to_do_list;
+
+import android.app.AlertDialog;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.EditText;
+import android.widget.ListView;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class MainActivity extends AppCompatActivity {
+    private ArrayList<String> items;
+    private ListView listView;
+    private Button addButton;
+    private ToDoListAdapter todoListAdapter;
+
+    @Override
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        listView = findViewById(R.id.list);
+        addButton = findViewById(R.id.button);
+        addButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                addItem(view);
+            }
+        });
+
+        items = new ArrayList<>();
+        todoListAdapter = new ToDoListAdapter(this, items);
+        listView.setAdapter(todoListAdapter);
+    }
+
+    private void addItem(View view) {
+        EditText input = findViewById(R.id.edit_Text);
+        String itemText = input.getText().toString();
+        if (!itemText.equals("")) {
+            items.add(itemText);
+            todoListAdapter.notifyDataSetChanged();
+            input.setText("");
+        } else {
+            Toast.makeText(getApplicationContext(), "Please enter text", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private class ToDoListAdapter extends ArrayAdapter<String> {
+        public ToDoListAdapter(Context context, List<String> items) {
+            super(context, 0, items);
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            if (convertView == null) {
+                convertView = LayoutInflater.from(getContext()).inflate(R.layout.list_item, parent, false);
+            }
+
+            CheckBox checkbox = convertView.findViewById(R.id.checkbox);
+            TextView itemText = convertView.findViewById(R.id.item_text);
+            Button editButton = convertView.findViewById(R.id.edit_button);
+            Button deleteButton = convertView.findViewById(R.id.delete_button);
+
+            String item = getItem(position);
+            itemText.setText(item);
+
+            checkbox.setChecked(isItemCompleted(item));
+
+            editButton.setOnClickListener(view -> editItem(position, item));
+            deleteButton.setOnClickListener(view -> deleteItem(position, item));
+
+            return convertView;
+        }
+
+        private boolean isItemCompleted(String item) {
+            // Implement logic to determine if the item is completed
+            return false; // Replace with your logic
+        }
+
+        private void editItem(int position, String item) {
+            // Show a dialog to allow the user to re-enter the item
+            AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+            builder.setTitle("Edit Item");
+
+            // Create the input field
+            final EditText input = new EditText(MainActivity.this);
+            input.setText(item);
+            builder.setView(input);
+
+            // Set the positive button
+            builder.setPositiveButton("Save", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    String newItem = input.getText().toString();
+                    if (!newItem.equals("")) {
+                        items.set(position, newItem);
+                        notifyDataSetChanged();
+                    } else {
+                        Toast.makeText(getContext(), "Please enter text", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            });
+
+            // Set the negative button
+            builder.setNegativeButton("Cancel", null);
+
+            builder.show();
+        }
+
+        private void deleteItem(int position, String item) {
+            // Remove the item from the list and update the adapter
+            items.remove(position);
+            notifyDataSetChanged();
+        }
+    }
+}"
