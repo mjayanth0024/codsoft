@@ -1,0 +1,258 @@
+activity_main.xml
+"<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/textViewQuote"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:textSize="24sp"
+        android:textStyle="italic" />
+
+    <TextView
+        android:id="@+id/textViewAuthor"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="8dp"
+        android:textSize="18sp" />
+
+    <Button
+        android:id="@+id/buttonRefresh"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="16dp"
+        android:text="Refresh Quote" />
+
+    <Button
+        android:id="@+id/buttonShare"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="8dp"
+        android:text="Share Quote" />
+
+    <Button
+        android:id="@+id/buttonFavorites"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="8dp"
+        android:text="Favorite Quotes" />
+
+</LinearLayout>"
+
+activity_favarite_quotes.xml
+"<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <ListView
+        android:id="@+id/listViewFavorites"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <Button
+        android:id="@+id/buttonAddFavorite"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:text="Add Favorite" />
+
+</LinearLayout>"
+
+mainactivity.java
+"package com.example.quote;
+
+import android.content.Intent;
+import android.os.Bundle;
+import android.os.Parcelable;
+import android.widget.Button;
+import android.widget.TextView;
+
+import androidx.appcompat.app.AppCompatActivity;
+
+import java.util.ArrayList;
+
+public class MainActivity extends AppCompatActivity implements Parcelable {
+    private TextView textViewQuote, textViewAuthor;
+    private Button buttonRefresh, buttonShare, buttonFavorites;
+    private ArrayList<String> favoriteQuotes;
+
+    public MainActivity() {
+    }
+
+    protected MainActivity(android.os.Parcel in) {
+        favoriteQuotes = in.createStringArrayList();
+    }
+
+    public static final Creator<MainActivity> CREATOR = new Creator<MainActivity>() {
+        @Override
+        public MainActivity createFromParcel(android.os.Parcel in) {
+            return new MainActivity(in);
+        }
+
+        @Override
+        public MainActivity[] newArray(int size) {
+            return new MainActivity[size];
+        }
+    };
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        // Find the UI elements
+        textViewQuote = findViewById(R.id.textViewQuote);
+        textViewAuthor = findViewById(R.id.textViewAuthor);
+        buttonRefresh = findViewById(R.id.buttonRefresh);
+        buttonShare = findViewById(R.id.buttonShare);
+        buttonFavorites = findViewById(R.id.buttonFavorites);
+
+        // Initialize the favorite quotes list
+        favoriteQuotes = new ArrayList<>();
+
+        // Display the initial quote
+        displayQuotePublic();
+
+        // Set click listeners
+        buttonRefresh.setOnClickListener(v -> displayQuotePublic());
+        buttonShare.setOnClickListener(v -> shareQuote());
+        buttonFavorites.setOnClickListener(v -> openFavorites());
+    }
+
+    private void displayQuote() {
+        String quote = QuoteManager.getRandomQuote();
+        String[] parts = quote.split(" - ");
+        textViewQuote.setText(parts[0]);
+        textViewAuthor.setText(parts[1]);
+    }
+
+    public void displayQuotePublic() {
+        displayQuote();
+    }
+
+    private void shareQuote() {
+        String quote = textViewQuote.getText() + " - " + textViewAuthor.getText();
+        Intent shareIntent = new Intent(Intent.ACTION_SEND);
+        shareIntent.setType("text/plain");
+        shareIntent.putExtra(Intent.EXTRA_TEXT, quote);
+        startActivity(Intent.createChooser(shareIntent, "Share quote via"));
+    }
+
+    private void openFavorites() {
+        // Create a new intent to open the FavoriteQuotesActivity
+        Intent intent = new Intent(this, FavoriteQuotesActivity.class);
+
+        // Pass the favorite quotes list and a reference to the MainActivity instance to the FavoriteQuotesActivity
+        intent.putStringArrayListExtra("favorite_quotes", favoriteQuotes);
+        intent.putExtra("main_activity", this);
+        startActivity(intent);
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(android.os.Parcel dest, int flags) {
+        dest.writeStringList(favoriteQuotes);
+    }
+
+    public void addFavoriteQuote(String quote) {
+        favoriteQuotes.add(quote);
+    }
+}"
+
+FavoriteQuotesActivity.java
+"package com.example.quote;
+
+import android.os.Bundle;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.ListView;
+
+import androidx.appcompat.app.AppCompatActivity;
+
+import java.util.ArrayList;
+
+public class FavoriteQuotesActivity extends AppCompatActivity {
+    private ListView listViewFavorites;
+    private Button buttonAddFavorite;
+    private ArrayList<String> favoriteQuotes;
+    private ArrayAdapter<String> favoriteQuotesAdapter;
+    private MainActivity mainActivity;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_favorite_quotes);
+
+        // Find the UI elements
+        listViewFavorites = findViewById(R.id.listViewFavorites);
+        buttonAddFavorite = findViewById(R.id.buttonAddFavorite);
+
+        // Get the favorite quotes list and MainActivity reference from the intent
+        favoriteQuotes = getIntent().getStringArrayListExtra("favorite_quotes");
+        if (favoriteQuotes == null) {
+            favoriteQuotes = new ArrayList<>();
+        }
+        mainActivity = (MainActivity) getIntent().getSerializableExtra("main_activity");
+
+        // Set up the adapter and list view
+        favoriteQuotesAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, favoriteQuotes);
+        listViewFavorites.setAdapter(favoriteQuotesAdapter);
+
+        // Set the click listener for the "Add Favorite" button
+        buttonAddFavorite.setOnClickListener(v -> addFavoriteQuote());
+    }
+
+    private void addFavoriteQuote() {
+        // Implement the logic to add a new favorite quote
+        String newQuote = "New favorite quote";
+        favoriteQuotes.add(newQuote);
+        favoriteQuotesAdapter.notifyDataSetChanged();
+
+        // Update the favorite quotes list in the MainActivity
+        if (mainActivity != null) {
+            mainActivity.addFavoriteQuote(newQuote);
+        }
+    }
+}"
+QuoteManager.java
+"package com.example.quote;
+
+public class QuoteManager {
+    private static final String[] QUOTES = {
+            "The only way to do great work is to love what you do. - Steve Jobs",
+            "Believe you can and you're halfway there. - Theodore Roosevelt",
+            "Happiness is not something ready-made. It comes from your own actions. - Dalai Lama",
+            "The future belongs to those who believe in the beauty of their dreams. - Eleanor Roosevelt",
+            "Success is not final, failure is not fatal: It is the courage to continue that counts. - Winston Churchill"
+    };
+
+    private static final String[] AUTHORS = {
+            "Steve Jobs",
+            "Theodore Roosevelt",
+            "Dalai Lama",
+            "Eleanor Roosevelt",
+            "Winston Churchill"
+    };
+
+    public static String getRandomQuote() {
+        int index = (int) (Math.random() * QUOTES.length);
+        return QUOTES[index] + " - " + AUTHORS[index];
+    }
+}"
